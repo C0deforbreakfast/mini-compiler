@@ -1,3 +1,9 @@
+# git add .
+# git commit -m ""
+# git push https://github.com/C0deforbreakfast/mini-compiler.git (<remote_name>) master (<branch_name>)
+# for setting upstream of git to https://github.com/C0deforbreakfast/mini-compiler.git remote and 
+# master branch use git push -u https://github.com/C0deforbreakfast/mini-compiler.git master
+
 index = 0
 line = 1
 file = open('input_file.txt', 'a').write(' ')

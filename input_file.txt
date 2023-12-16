@@ -1,0 +1,6 @@
+BeGin
+    {
+        int x; int X;
+        INT 2x;
+    }
+eND        

@@ -8,15 +8,59 @@ index = 0
 line = 1
 file = open('input_file.txt', 'a').write(' ')
 
-class Parser():
-    def __init__(self):
-        pass
+def printm(a):
+    print(a, end=' ')
 
-    def match(self):
-        pass
+
+def Error():
+    printm(f'Error in line {line}')
+
+
+class Symbol:
+    def __init__(self, type):
+        # Type is word object #
+        self.type = type.lexeme
+
+
+class Env:
+    def __init__(self, next, prev=None):
+        global block_number
+        global table_data
+        self.prev = prev
+        self.next = next
+        self.block_number = block_number
+        self.symbol_table = {}
+
+    def put(self, symbol, id):
+        # Symbol is a word object #
+        self.symbol_table[id.lexeme] = symbol
+
+    def get(self, id):
+        symbol_table_ids = self.symbol_table.keys()
+        if id.lexeme in symbol_table_ids:
+            symbol = self.symbol_table[id.lexeme]
+            table_data[self.block_number] = self.symbol_table
+            # print(id.lexeme, end=' ')
+            # print(':', end=' ')
+            # print(symbol.type)
+
+
+class Parser:
+    def __init__(self):
+        self.lexer = LexicalAnalyzer()
+
+    def match(self, t):
+        self.lookahead = self.lexer.scan()
+        print('lookahead is :', self.lookahead)
+        if self.lookahead != t:
+            Error()
 
     def program(self):
-        pass
+        print('program')
+        self.match('begin')
+        printm('begin')
+        self.block()
+        self.match('end')
 
     def block(self):
         pass
@@ -68,37 +112,40 @@ class LexicalAnalyzer:
         self.reserved_keywords_types = ['int', 'bool', 'char', 'float']
 
     def tokenize(self):
+        print('tokenize')
         b = self.peek
         self.peek = ""
         if 49 <= ord(b[0]) <= 57:
-            print(f"ERROR in line {line}")
+            Error()
             pass
         # For begin and end terminals
         elif b.lower() in ['begin', 'end']:
-            print(b.lower())
+            return b.lower()
         elif b.lower() in self.words.keys():
             if b.lower() in self.reserved_keywords_types:
-                print(self.words[b.lower()].lexeme)
+                return self.words[b.lower()].lexeme
             else:
-                print(b)
+                return b
         else:
             self.words[b.lower()] = Word(self.tag.ID, b.lower())
-            print(b)
+            return b
 
     def terminal_tokenize(self):
         b = self.peek
         self.peek = ""
-        print(b.lower())
+        return(b.lower())
 
     def scan(self):
+        print('scan')
         global index
         global line
         is_line_comment = False
         is_comment = False
+        token = ""
 
         while index < len(self.input_file):
             # Handle comments // and /* */
-            if "//"  in self.peek:
+            if "//" in self.peek:
                 is_line_comment = True
                 self.peek = ""
             elif "/*" in self.peek:
@@ -113,24 +160,24 @@ class LexicalAnalyzer:
                 elif self.input_file[index] == '\n':
                     line += 1
                     if len(self.peek) != 0:
-                        self.terminal_tokenize()
+                        token = self.terminal_tokenize()
                 # Getting characters
                 elif self.input_file[index] not in [' ', '\n', '\t']:
                     self.peek += self.input_file[index]
                     if self.input_file[index + 1] == '/':
                         if self.input_file[index + 2] == '/':
-                            self.tokenize()
+                            token = self.tokenize()
                     elif self.input_file[index + 1] in [';', '{', '}']:
-                        self.tokenize()
+                        token = self.tokenize()
                     elif self.peek in [';', '{', '}']:
-                        self.terminal_tokenize()
+                        token = self.terminal_tokenize()
                 # Handling tokenization
                     # Handling ';', '{', '}'
                 elif self.peek in [';', '{', '}']:
-                    self.terminal_tokenize()
+                    token = self.terminal_tokenize()
                     # Handling ' ' after the word
                 elif self.input_file[index] == ' ':
-                    self.tokenize()
+                    token = self.tokenize()
             # Handling end conditions for comments
             if is_line_comment:
                 if self.input_file[index] == '\n':
@@ -144,11 +191,11 @@ class LexicalAnalyzer:
                     line += 1
 
             index += 1
+
+            if len(token) != 0:
+                return token
             
-                    
 
 if __name__ == '__main__':
-    lexer = LexicalAnalyzer()
-    lexer.scan()
-
-    
+    p = Parser()
+    p.program()

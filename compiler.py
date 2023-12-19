@@ -93,29 +93,56 @@ class LexicalAnalyzer:
     def scan(self):
         global index
         global line
-        
+        is_line_comment = False
+        is_comment = False
+
         while index < len(self.input_file):
-            # Handling ' ', '\t'
-            if self.input_file[index] == (' ' or '\t') and len(self.peek) == 0:
-                pass
-            # Handling '\n'
-            elif self.input_file[index] == '\n':
-                line += 1
-                if len(self.peek) != 0:
+            # Handle comments // and /* */
+            if "//"  in self.peek:
+                is_line_comment = True
+                self.peek = ""
+            elif "/*" in self.peek:
+                is_comment = True
+                self.peek = ""
+
+            if is_line_comment == False and is_comment == False:
+                # Handling ' ', '\t'
+                if self.input_file[index] == (' ' or '\t') and len(self.peek) == 0:
+                    pass
+                # Handling '\n'
+                elif self.input_file[index] == '\n':
+                    line += 1
+                    if len(self.peek) != 0:
+                        self.terminal_tokenize()
+                # Getting characters
+                elif self.input_file[index] not in [' ', '\n', '\t']:
+                    self.peek += self.input_file[index]
+                    if self.input_file[index + 1] == '/':
+                        if self.input_file[index + 2] == '/':
+                            self.tokenize()
+                    elif self.input_file[index + 1] in [';', '{', '}']:
+                        self.tokenize()
+                    elif self.peek in [';', '{', '}']:
+                        self.terminal_tokenize()
+                # Handling tokenization
+                    # Handling ';', '{', '}'
+                elif self.peek in [';', '{', '}']:
                     self.terminal_tokenize()
-            # Getting characters
-            elif self.input_file[index] not in [' ', '\n', '\t']:
-                self.peek += self.input_file[index]
-                if self.input_file[index + 1] in [';', '{', '}']:
+                    # Handling ' ' after the word
+                elif self.input_file[index] == ' ':
                     self.tokenize()
-            # Handling tokenization
-                # Handling ';', '{', '}'
-            elif self.peek in [';', '{', '}']:
-                self.terminal_tokenize()
-                # Handling ' ' after the word
-            elif self.input_file[index] == ' ':
-                self.tokenize()
-            
+            # Handling end conditions for comments
+            if is_line_comment:
+                if self.input_file[index] == '\n':
+                    is_line_comment = False
+                    line += 1
+            elif is_comment:
+                if self.input_file[index] == '*' and self.input_file[index + 1] == '/':
+                    is_comment = False
+                    index += 1
+                elif self.input_file[index] == '\n':
+                    line += 1
+
             index += 1
             
                     

@@ -1,6 +1,4 @@
-BeGin
-    {
-        int x; int X;
-        INT 2x;
-    }
-eND        
+Begin// something, int x;
+{int x;{int y;}{bool z;}}/* 
+something//*/
+end     

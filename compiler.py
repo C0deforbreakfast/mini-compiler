@@ -7,19 +7,39 @@
 index = 0
 line = 1
 file = open('input_file.txt', 'a').write(' ')
+block_number = 0
 
 def printm(a):
     print(a, end=' ')
 
 
-def Error():
-    printm(f'Error in line {line}')
+class Error:
+    def __init__(self):
+        global line
+
+    def printing(self, text):
+        print(text, end=' ')
+    
+    def print_error(self, text):
+        self.printing(text)
+        exit()
+
+    def valid_variable_names(self, string):
+        error_message = f"ERROR in line {line}"
+        for character in string:
+            if ord(character) < 65 or ord(character) > 122 or 90 < ord(character) < 95 \
+            or ord(character) == 96:
+                self.print_error(error_message)
+
+    def missmatch(self):
+        error_message = f"ERROR in line {line}"
+        self.print_error(error_message)
 
 
 class Symbol:
-    def __init__(self, type):
+    def __init__(self):
         # Type is word object #
-        self.type = type.lexeme
+        self.type = None
 
 
 class Env:
@@ -48,28 +68,93 @@ class Env:
 class Parser:
     def __init__(self):
         self.lexer = LexicalAnalyzer()
+        self.top = None
+        self.saved = None
+        self.error = Error()
 
-    def match(self, t):
+    def match(self, t=None):
+        print('match')
         self.lookahead = self.lexer.scan()
         print('lookahead is :', self.lookahead)
-        if self.lookahead != t:
-            Error()
+        if t is not None:
+            if self.lookahead != t:
+                Error()
+        else:
+            self.error.missmatch()
 
     def program(self):
         print('program')
         self.match('begin')
         printm('begin')
+        self.decls()
         self.block()
         self.match('end')
 
     def block(self):
-        pass
+        print('block')
+        global block_number
+        block_number += 1
+        self.saved = self.top
+        self.top = Env(self.top)
+        self.match('{')
+        printm('{')
+        self.decls()
+        self.stmts()
+        self.match('}')
+        printm('}')
+        block_number -= 1
 
     def decls(self):
-        pass
+        print('decls')
+        self.rest1()
+
+    def rest1(self):
+        print('rest1')
+        global index
+        this_index = index
+        first = self.lexer.scan()
+        print('lookahead is :', first)
+        index = this_index
+        if first.lower() in ['int', 'float', 'char', 'bool']:
+            self.decl()
+            self.rest1()
 
     def decl(self):
-        pass
+        print('decl')
+        type = self.lexer.scan()
+        print('lookahead is (type):', type)
+        id = self.lexer.scan()
+        print('lookahead is (id):', type)
+        s = Symbol()
+        s.type = type
+
+    def stmts(self):
+        print('stmts')
+        self.rest2()
+
+    def rest2(self):
+        print('rest2')
+        global index
+        this_index = index
+        first = self.lexer.scan()
+        print('lookahead is :', first)
+        index = this_index
+        if self.error.valid_variable_names(first):
+            self.stmt()
+            self.rest2()
+
+    def stmt(self):
+        print(f'index is {index}')
+        print(f'length is {len(self.lexer.input_file)}')
+        first = self.lexer.input_file[index]
+        if first == '{':
+            self.block()
+        else:
+            self.factor()
+
+    def factor(self):
+        print('factor')
+        self.match()
 
 
 class Tag:
@@ -97,6 +182,7 @@ class LexicalAnalyzer:
         self.input_file = open("input_file.txt").read()
         self.length = len(self.input_file)
         self.tag = Tag()
+        self.error = Error()
         INT = Word(self.tag.INT, 'int')
         FLOAT = Word(self.tag.FLOAT, 'float')
         BOOL = Word(self.tag.BOOL, 'bool')
@@ -115,9 +201,8 @@ class LexicalAnalyzer:
         print('tokenize')
         b = self.peek
         self.peek = ""
-        if 49 <= ord(b[0]) <= 57:
-            Error()
-            pass
+        if self.error.valid_variable_names(b):
+            self.error.print_error()
         # For begin and end terminals
         elif b.lower() in ['begin', 'end']:
             return b.lower()
@@ -133,7 +218,7 @@ class LexicalAnalyzer:
     def terminal_tokenize(self):
         b = self.peek
         self.peek = ""
-        return(b.lower())
+        return (b.lower())
 
     def scan(self):
         print('scan')
@@ -152,7 +237,7 @@ class LexicalAnalyzer:
                 is_comment = True
                 self.peek = ""
 
-            if is_line_comment == False and is_comment == False:
+            if is_line_comment is False and is_comment is False:
                 # Handling ' ', '\t'
                 if self.input_file[index] == (' ' or '\t') and len(self.peek) == 0:
                     pass
@@ -172,7 +257,7 @@ class LexicalAnalyzer:
                     elif self.peek in [';', '{', '}']:
                         token = self.terminal_tokenize()
                 # Handling tokenization
-                    # Handling ';', '{', '}'
+                # Handling ';', '{', '}'
                 elif self.peek in [';', '{', '}']:
                     token = self.terminal_tokenize()
                     # Handling ' ' after the word
@@ -194,8 +279,9 @@ class LexicalAnalyzer:
 
             if len(token) != 0:
                 return token
-            
+
 
 if __name__ == '__main__':
     p = Parser()
     p.program()
+    

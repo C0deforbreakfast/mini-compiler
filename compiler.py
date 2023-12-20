@@ -8,9 +8,13 @@ index = 0
 line = 1
 file = open('input_file.txt', 'a').write(' ')
 block_number = 0
+def printd(a):
+    print(a)
+    pass
 
 def printm(a):
     print(a, end=' ')
+    pass
 
 
 class Error:
@@ -19,7 +23,7 @@ class Error:
 
     def printing(self, text):
         print(text, end=' ')
-    
+
     def print_error(self, text):
         self.printing(text)
         exit()
@@ -29,7 +33,8 @@ class Error:
         for character in string:
             if ord(character) < 65 or ord(character) > 122 or 90 < ord(character) < 95 \
             or ord(character) == 96:
-                self.print_error(error_message)
+                return False
+        return True
 
     def missmatch(self):
         error_message = f"ERROR in line {line}"
@@ -71,19 +76,20 @@ class Parser:
         self.top = None
         self.saved = None
         self.error = Error()
+        self.lookahead = self.lexer.scan()
 
     def match(self, t=None):
-        print('match')
-        self.lookahead = self.lexer.scan()
-        print('lookahead is :', self.lookahead)
+        printd('match')
+        printd(f'lookahead is : {self.lookahead}')
         if t is not None:
             if self.lookahead != t:
                 Error()
         else:
             self.error.missmatch()
+        self.lookahead = self.lexer.scan()
 
     def program(self):
-        print('program')
+        printd('program')
         self.match('begin')
         printm('begin')
         self.decls()
@@ -91,7 +97,7 @@ class Parser:
         self.match('end')
 
     def block(self):
-        print('block')
+        printd('block')
         global block_number
         block_number += 1
         self.saved = self.top
@@ -105,55 +111,48 @@ class Parser:
         block_number -= 1
 
     def decls(self):
-        print('decls')
+        printd('decls')
         self.rest1()
 
     def rest1(self):
-        print('rest1')
-        global index
-        this_index = index
-        first = self.lexer.scan()
-        print('lookahead is :', first)
-        index = this_index
-        if first.lower() in ['int', 'float', 'char', 'bool']:
+        printd('rest1')
+        printd(f'lookahead is :{self.lookahead}')
+        if self.lookahead.lower() in ['int', 'float', 'char', 'bool']:
             self.decl()
             self.rest1()
 
     def decl(self):
-        print('decl')
-        type = self.lexer.scan()
-        print('lookahead is (type):', type)
+        printd('decl')
+        type = self.lookahead
+        printd(f'lookahead is (type): {type}')
         id = self.lexer.scan()
-        print('lookahead is (id):', type)
+        printd(f'lookahead is (id): {id}')
+        self.lookahead = self.lexer.scan()
         s = Symbol()
         s.type = type
+        self.match(';')
 
     def stmts(self):
-        print('stmts')
+        printd('stmts')
         self.rest2()
 
     def rest2(self):
-        print('rest2')
-        global index
-        this_index = index
-        first = self.lexer.scan()
-        print('lookahead is :', first)
-        index = this_index
-        if self.error.valid_variable_names(first):
+        printd('rest2')
+        printd(f'lookahead is : {self.lookahead}')
+        if self.error.valid_variable_names(self.lookahead) or self.lookahead == '{':
             self.stmt()
             self.rest2()
 
     def stmt(self):
-        print(f'index is {index}')
-        print(f'length is {len(self.lexer.input_file)}')
-        first = self.lexer.input_file[index]
-        if first == '{':
+        printd(f'index is {index}')
+        printd(f'length is {len(self.lexer.input_file)}')
+        if self.lookahead == '{':
             self.block()
         else:
             self.factor()
 
     def factor(self):
-        print('factor')
+        printd('factor')
         self.match()
 
 
@@ -198,13 +197,13 @@ class LexicalAnalyzer:
         self.reserved_keywords_types = ['int', 'bool', 'char', 'float']
 
     def tokenize(self):
-        print('tokenize')
+        printd('tokenize')
         b = self.peek
         self.peek = ""
-        if self.error.valid_variable_names(b):
-            self.error.print_error()
+        '''if self.error.valid_variable_names(b):
+            self.error.print_error()'''
         # For begin and end terminals
-        elif b.lower() in ['begin', 'end']:
+        if b.lower() in ['begin', 'end']:
             return b.lower()
         elif b.lower() in self.words.keys():
             if b.lower() in self.reserved_keywords_types:
@@ -218,10 +217,10 @@ class LexicalAnalyzer:
     def terminal_tokenize(self):
         b = self.peek
         self.peek = ""
-        return (b.lower())
+        return b.lower()
 
     def scan(self):
-        print('scan')
+        printd('scan')
         global index
         global line
         is_line_comment = False
@@ -250,7 +249,8 @@ class LexicalAnalyzer:
                 elif self.input_file[index] not in [' ', '\n', '\t']:
                     self.peek += self.input_file[index]
                     if self.input_file[index + 1] == '/':
-                        if self.input_file[index + 2] == '/':
+                        if self.input_file[index + 2] == '/' \
+                            or self.input_file[index + 2] == '*':
                             token = self.tokenize()
                     elif self.input_file[index + 1] in [';', '{', '}']:
                         token = self.tokenize()

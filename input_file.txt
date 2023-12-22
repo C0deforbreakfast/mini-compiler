@@ -1,5 +1,2 @@
-Begin// something, int x;
-{int x;{int y;}{bool z;}}/*
-something//*/
-end
-    
+Begin{{int x; char y; bool y; x; y; } x; y; }end
+         

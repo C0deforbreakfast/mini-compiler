@@ -8,8 +8,10 @@ index = 0
 line = 1
 file = open('input_file.txt', 'a').write(' ')
 block_number = 0
+table_data = {}
+
 def printd(a):
-    print(a)
+    # print(a)
     pass
 
 def printm(a):
@@ -56,7 +58,7 @@ class Env:
         self.block_number = block_number
         self.symbol_table = {}
 
-    def put(self, symbol, id):
+    def put(self, id, symbol):
         # Symbol is a word object #
         self.symbol_table[id.lexeme] = symbol
 
@@ -64,17 +66,13 @@ class Env:
         symbol_table_ids = self.symbol_table.keys()
         if id.lexeme in symbol_table_ids:
             symbol = self.symbol_table[id.lexeme]
-            table_data[self.block_number] = self.symbol_table
-            # print(id.lexeme, end=' ')
-            # print(':', end=' ')
-            # print(symbol.type)
+            # table_data[self.block_number] = self.symbol_table
+            return symbol
 
 
 class Parser:
     def __init__(self):
         self.lexer = LexicalAnalyzer()
-        self.top = None
-        self.saved = None
         self.error = Error()
         self.lookahead = self.lexer.scan()
 
@@ -83,18 +81,22 @@ class Parser:
         printd(f'lookahead is : {self.lookahead}')
         if t is not None:
             if self.lookahead != t:
-                Error()
+                self.error.missmatch()
         else:
-            self.error.missmatch()
+            pass
+            # printm(self.lookahead)
+
         self.lookahead = self.lexer.scan()
 
     def program(self):
+        self.top = None
         printd('program')
         self.match('begin')
         printm('begin')
         self.decls()
         self.block()
         self.match('end')
+        printm('end')
 
     def block(self):
         printd('block')
@@ -102,6 +104,7 @@ class Parser:
         block_number += 1
         self.saved = self.top
         self.top = Env(self.top)
+        # self.top = self.saved
         self.match('{')
         printm('{')
         self.decls()
@@ -128,8 +131,10 @@ class Parser:
         id = self.lexer.scan()
         printd(f'lookahead is (id): {id}')
         self.lookahead = self.lexer.scan()
-        s = Symbol()
-        s.type = type
+        self.word = Word(type, id)
+        self.s = Symbol()
+        self.s.type = type
+        self.top.put(self.word, self.s)
         self.match(';')
 
     def stmts(self):
@@ -142,7 +147,6 @@ class Parser:
         if self.error.valid_variable_names(self.lookahead) or self.lookahead == '{':
             self.stmt()
             self.rest2()
-
     def stmt(self):
         printd(f'index is {index}')
         printd(f'length is {len(self.lexer.input_file)}')
@@ -150,9 +154,13 @@ class Parser:
             self.block()
         else:
             self.factor()
+            self.match(';')
 
     def factor(self):
         printd('factor')
+        # self.word = Word(0, self.lookahead)
+        self.s = self.top.get(self.word)
+        printm(f'{self.lookahead}:{self.s.type};')
         self.match()
 
 
@@ -174,7 +182,6 @@ class Word:
     def __init__(self, tag:int, lexeme):
         self.tag = Token(tag).tag
         self.lexeme = lexeme
-
 
 class LexicalAnalyzer:
     def __init__(self):
@@ -279,9 +286,7 @@ class LexicalAnalyzer:
 
             if len(token) != 0:
                 return token
-
-
+            
 if __name__ == '__main__':
     p = Parser()
     p.program()
-    

@@ -1,7 +1,7 @@
 # git add .
 # git commit -m ""
 # git push https://github.com/C0deforbreakfast/mini-compiler.git (<remote_name>) master (<branch_name>)
-# for setting upstream of git to https://github.com/C0deforbreakfast/mini-compiler.git remote and 
+# for setting upstream of git to https://github.com/C0deforbreakfast/mini-compiler.git remote and
 # master branch use git push -u https://github.com/C0deforbreakfast/mini-compiler.git master
 
 index = 0
@@ -10,9 +10,11 @@ file = open('input_file.txt', 'a').write(' ')
 block_number = 0
 table_data = {}
 
+
 def printd(a):
     # print(a)
     pass
+
 
 def printm(a):
     print(a, end=' ')
@@ -22,52 +24,77 @@ def printm(a):
 class Error:
     def __init__(self):
         global line
+        self.error_message = f"ERROR in line {line}"
 
     def printing(self, text):
         print(text, end=' ')
 
-    def print_error(self, text):
-        self.printing(text)
+    def print_error(self):
+        self.printing(self.error_message)
         exit()
 
+    # def valid_variable_names(self, string):
+    #     if string in ['float', 'int', 'bool', 'char']:
+    #         return False
+    #     for character in string:
+    #         if ord(character) < 65 or ord(character) > 122 or 90 < ord(character) < 95 \
+    #                 or ord(character) == 96:
+    #             return False
+    #     return True
     def valid_variable_names(self, string):
-        error_message = f"ERROR in line {line}"
-        for character in string:
-            if ord(character) < 65 or ord(character) > 122 or 90 < ord(character) < 95 \
-            or ord(character) == 96:
+        digits = '0123456789'
+        letters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_'
+        if string[0] not in letters:
+            return False
+        for letter in string:
+            if letter not in digits and letter not in letters:
                 return False
         return True
 
     def missmatch(self):
-        error_message = f"ERROR in line {line}"
-        self.print_error(error_message)
+        self.print_error()
 
 
 class Symbol:
-    def __init__(self):
+    def __init__(self, type):
         # Type is word object #
-        self.type = None
+        self.type = type
+        self.block_number = block_number
 
 
 class Env:
-    def __init__(self, next, prev=None):
-        global block_number
+    def __init__(self, prev=None):
         global table_data
         self.prev = prev
-        self.next = next
-        self.block_number = block_number
+        self.error = Error()
         self.symbol_table = {}
 
-    def put(self, id, symbol):
+    def put(self, word, symbol):
         # Symbol is a word object #
-        self.symbol_table[id.lexeme] = symbol
+        if word.lexeme.lower() in self.symbol_table:
+            self.error.print_error()
+        else:
+            if self.error.valid_variable_names(word.lexeme):
+                self.symbol_table[word.lexeme.lower()] = symbol
+            else:
+                self.error.print_error()
+        #print(self.symbol_table)
+
 
     def get(self, id):
         symbol_table_ids = self.symbol_table.keys()
-        if id.lexeme in symbol_table_ids:
-            symbol = self.symbol_table[id.lexeme]
-            # table_data[self.block_number] = self.symbol_table
+        if id.lexeme.lower() in symbol_table_ids:
+            symbol = self.symbol_table[id.lexeme.lower()]
             return symbol
+        elif self.prev is not None:
+            s = self.prev.get(id)
+        else:
+            return None
+
+        if s is None:
+            s = Symbol('ND')
+            s.block_number = line
+        return s
 
 
 class Parser:
@@ -75,6 +102,7 @@ class Parser:
         self.lexer = LexicalAnalyzer()
         self.error = Error()
         self.lookahead = self.lexer.scan()
+        self.top = Env(None)
 
     def match(self, t=None):
         printd('match')
@@ -89,7 +117,6 @@ class Parser:
         self.lookahead = self.lexer.scan()
 
     def program(self):
-        self.top = None
         printd('program')
         self.match('begin')
         printm('begin')
@@ -102,7 +129,7 @@ class Parser:
         printd('block')
         global block_number
         block_number += 1
-        self.saved = self.top
+        saved = self.top
         self.top = Env(self.top)
         # self.top = self.saved
         self.match('{')
@@ -111,6 +138,7 @@ class Parser:
         self.stmts()
         self.match('}')
         printm('}')
+        self.top = saved
         block_number -= 1
 
     def decls(self):
@@ -128,13 +156,13 @@ class Parser:
         printd('decl')
         type = self.lookahead
         printd(f'lookahead is (type): {type}')
-        id = self.lexer.scan()
-        printd(f'lookahead is (id): {id}')
-        self.lookahead = self.lexer.scan()
-        self.word = Word(type, id)
-        self.s = Symbol()
-        self.s.type = type
-        self.top.put(self.word, self.s)
+        self.match(type)
+        printd(f'lookahead is (id): {self.lookahead}')
+        word = Word(type, self.lookahead)
+        self.match(self.lookahead)
+        s = Symbol(type)
+        s.type = type
+        self.top.put(word, s)
         self.match(';')
 
     def stmts(self):
@@ -147,6 +175,7 @@ class Parser:
         if self.error.valid_variable_names(self.lookahead) or self.lookahead == '{':
             self.stmt()
             self.rest2()
+
     def stmt(self):
         printd(f'index is {index}')
         printd(f'length is {len(self.lexer.input_file)}')
@@ -158,9 +187,9 @@ class Parser:
 
     def factor(self):
         printd('factor')
-        # self.word = Word(0, self.lookahead)
-        self.s = self.top.get(self.word)
-        printm(f'{self.lookahead}:{self.s.type};')
+        word = Word('int', self.lookahead)
+        s = self.top.get(word)
+        printm(f'{self.lookahead}:{s.type}{s.block_number};')
         self.match()
 
 
@@ -179,9 +208,10 @@ class Token:
 
 
 class Word:
-    def __init__(self, tag:int, lexeme):
+    def __init__(self, tag: int, lexeme):
         self.tag = Token(tag).tag
         self.lexeme = lexeme
+
 
 class LexicalAnalyzer:
     def __init__(self):

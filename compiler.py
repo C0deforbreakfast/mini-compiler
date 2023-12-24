@@ -24,13 +24,13 @@ def printm(a):
 class Error:
     def __init__(self):
         global line
-        self.error_message = f"ERROR in line {line}"
 
     def printing(self, text):
         print(text, end=' ')
 
     def print_error(self):
-        self.printing(self.error_message)
+        error_message = f"ERROR in line {line}"
+        self.printing(error_message)
         exit()
 
     # def valid_variable_names(self, string):
@@ -263,6 +263,9 @@ class LexicalAnalyzer:
         is_line_comment = False
         is_comment = False
         token = ""
+        terminals = [';', '{', '}', '+', '=', '-', ')', '(', '&', '^', '%', '$'
+                     '#', '@', '!', '?', '>', '<', '`', ',', '.', '[', ']', ':'
+                     '~', '|']
 
         while index < len(self.input_file):
             # Handle comments // and /* */
@@ -285,11 +288,23 @@ class LexicalAnalyzer:
                 # Getting characters
                 elif self.input_file[index] not in [' ', '\n', '\t']:
                     self.peek += self.input_file[index]
+                    # Check for comments
                     if self.input_file[index + 1] == '/':
                         if self.input_file[index + 2] == '/' \
                             or self.input_file[index + 2] == '*':
                             token = self.tokenize()
-                    elif self.input_file[index + 1] in [';', '{', '}']:
+                    elif self.peek == '/':
+                        if self.input_file[index + 1] == '/':
+                            token = self.tokenize()
+                    # Check for / and * terminals which are not allowed
+                    elif self.input_file[index + 1] == '/':
+                        if self.input_file[index + 2] != '/':
+                            token = self.tokenize()
+                    elif self.input_file[index + 1] == '*':
+                        if self.input_file[index + 2] != '/':
+                            token = self.tokenize()
+                    # Check for next character that is allowed or not
+                    elif self.input_file[index + 1] in terminals:
                         token = self.tokenize()
                     elif self.peek in [';', '{', '}']:
                         token = self.terminal_tokenize()

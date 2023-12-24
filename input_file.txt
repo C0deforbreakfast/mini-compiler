@@ -1,3 +1,10 @@
-Begin
-{int x; x+2;}    end
-                                   
+Begin 
+{
+    int x; int z;
+    {
+        int y;
+        x; z;
+    }
+    y;
+} 
+end 

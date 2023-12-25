@@ -1,10 +1,29 @@
-Begin 
-{
-    int x; int z;
+Begin// comment1
+{int  x;
+        chAr Y1z0AB;
+    {BOOL _xY__1_; _xY__1_;  y1z0AB;}//comment2
     {
-        int y;
-        x; z;
-    }
-    y;
-} 
-end 
+x; y1z0ab;X;     {float f1;z;  X; }
+}
+
+/*
+comment3
+*/
+        x; y1z0AB;}    end
+
+
+/*
+Begin
+{integer x;}
+ end
+
+
+Begin
+{INT  1z0AB;}
+ end
+
+
+Begin
+{INT  x; float X;}
+ end
+   */     

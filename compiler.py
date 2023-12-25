@@ -140,6 +140,8 @@ class Parser:
         self.decls()
         self.match('end')
         printm('end')
+        if self.lookahead is not None:
+            self.error.print_error()
 
     def block(self):
         global block_number
@@ -352,5 +354,5 @@ if __name__ == '__main__':
     p = Parser()
     p.program()
     # print('\n' , table_data)
-    G = Graphizer()
-    G.draw(table_data)
+    '''G = Graphizer()
+    G.draw(table_data)'''

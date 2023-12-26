@@ -37,7 +37,7 @@ class Graphizer:
                     if count != len(value[0]):
                         string += ' | '
             string += '}'
-            print(node_name ,string)
+            # print(node_name ,string)
             self.dot.node(str(node_name), string)
 
         # Draw edges according to table data
@@ -48,7 +48,7 @@ class Graphizer:
         self.dot.view()
 
 
-table_data = {
+'''table_data = {
     '0': ({}, [1]),
     '1': ({'x': 'int', 'z': 'int'}, [2]),
     '2': ({'y': 'int'}, [])
@@ -56,4 +56,4 @@ table_data = {
 
 if __name__ == '__main__':
     G = Graphizer()
-    G.draw(table_data)
+    G.draw(table_data)'''

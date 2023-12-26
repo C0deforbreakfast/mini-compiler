@@ -3,11 +3,14 @@
 # git push https://github.com/C0deforbreakfast/mini-compiler.git (<remote_name>) master (<branch_name>)
 # for setting upstream of git to https://github.com/C0deforbreakfast/mini-compiler.git remote and
 # master branch use git push -u https://github.com/C0deforbreakfast/mini-compiler.git master
+from drawer import Graphizer
+
 
 index = 0
 line = 1
 file = open('input_file.txt', 'a').write(' ')
 block_number = 0
+last_block_number = 0
 table_data = {}
 
 
@@ -65,9 +68,15 @@ class Symbol:
 class Env:
     def __init__(self, prev=None):
         global table_data
+        global last_block_number
         self.prev = prev
         self.error = Error()
         self.symbol_table = {}
+        self.block_number = block_number
+        last_block_number = self.block_number
+        table_data[f'{block_number}'] = ({}, [])
+        if self.prev is not None:
+            table_data[f'{self.prev.block_number}'][1].append(self.block_number)
 
     def put(self, word, symbol):
         # Symbol is a word object #
@@ -76,10 +85,13 @@ class Env:
         else:
             if self.error.valid_variable_names(word.lexeme):
                 self.symbol_table[word.lexeme.lower()] = symbol
+                new_data = table_data[f'{self.block_number}'][0]
+                new_data[word.lexeme.lower()] = symbol.type
+                table_data[f'{self.block_number}'] = (new_data,
+                                                      table_data[f'{self.block_number}'][1])
             else:
                 self.error.print_error()
         #print(self.symbol_table)
-
 
     def get(self, id):
         symbol_table_ids = self.symbol_table.keys()
@@ -104,6 +116,7 @@ class Parser:
         self.lookahead = self.lexer.scan()
         self.top = Env(None)
 
+
     def match(self, t=None):
         printd('match')
         printd(f'lookahead is : {self.lookahead}')
@@ -117,21 +130,25 @@ class Parser:
         self.lookahead = self.lexer.scan()
 
     def program(self):
+        global block_number
+        block_number = 1
         printd('program')
         self.match('begin')
         printm('begin')
         self.decls()
         self.block()
+        self.decls()
         self.match('end')
         printm('end')
+        if self.lookahead is not None:
+            self.error.print_error()
 
     def block(self):
-        printd('block')
         global block_number
-        block_number += 1
+        printd('block')
+        block_number = last_block_number + 1
         saved = self.top
         self.top = Env(self.top)
-        # self.top = self.saved
         self.match('{')
         printm('{')
         self.decls()
@@ -139,7 +156,7 @@ class Parser:
         self.match('}')
         printm('}')
         self.top = saved
-        block_number -= 1
+        block_number = self.top.block_number
 
     def decls(self):
         printd('decls')
@@ -331,7 +348,11 @@ class LexicalAnalyzer:
 
             if len(token) != 0:
                 return token
-            
+
+
 if __name__ == '__main__':
     p = Parser()
     p.program()
+    # print('\n' , table_data)
+    '''G = Graphizer()
+    G.draw(table_data)'''

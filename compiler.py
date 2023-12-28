@@ -1,26 +1,18 @@
-# git add .
-# git commit -m ""
-# git push https://github.com/C0deforbreakfast/mini-compiler.git (<remote_name>) master (<branch_name>)
-# for setting upstream of git to https://github.com/C0deforbreakfast/mini-compiler.git remote and
-# master branch use git push -u https://github.com/C0deforbreakfast/mini-compiler.git master
-
+from drawer import Graphizer
+# Global variables
+file_name = 'input_file.txt'
 index = 0
 line = 1
-file = open('input_file.txt', 'a').write(' ')
+file = open(file_name, 'a').write(' ')
 block_number = 0
+last_block_number = 0
 table_data = {}
-
-
-def printd(a):
-    # print(a)
-    pass
-
-
-def printm(a):
+# SDT (Syntax-Directed translator)
+def printf(a):
     print(a, end=' ')
     pass
 
-
+# Error handling 
 class Error:
     def __init__(self):
         global line
@@ -32,15 +24,7 @@ class Error:
         error_message = f"ERROR in line {line}"
         self.printing(error_message)
         exit()
-
-    # def valid_variable_names(self, string):
-    #     if string in ['float', 'int', 'bool', 'char']:
-    #         return False
-    #     for character in string:
-    #         if ord(character) < 65 or ord(character) > 122 or 90 < ord(character) < 95 \
-    #                 or ord(character) == 96:
-    #             return False
-    #     return True
+    # Check validaty of variable name
     def valid_variable_names(self, string):
         digits = '0123456789'
         letters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_'
@@ -50,38 +34,50 @@ class Error:
             if letter not in digits and letter not in letters:
                 return False
         return True
-
+    # Handle missmatch
     def missmatch(self):
         self.print_error()
 
-
+# Each row in symbol table is a symbol object
 class Symbol:
     def __init__(self, type):
         # Type is word object #
         self.type = type
         self.block_number = block_number
 
-
+# AKA symbol table
 class Env:
     def __init__(self, prev=None):
         global table_data
+        global last_block_number
         self.prev = prev
         self.error = Error()
         self.symbol_table = {}
+        self.block_number = block_number
+        self.keywords = ['begin', 'end', 'float', 'int', 'char', 'bool']
+        last_block_number = self.block_number
+        table_data[f'{block_number}'] = ({}, [])
+        if self.prev is not None:
+            table_data[f'{self.prev.block_number}'][1].append(self.block_number)
 
     def put(self, word, symbol):
         # Symbol is a word object #
-        if word.lexeme.lower() in self.symbol_table:
+
+        if word.lexeme.lower() in self.symbol_table or word.lexeme.lower() in self.keywords:
             self.error.print_error()
         else:
             if self.error.valid_variable_names(word.lexeme):
                 self.symbol_table[word.lexeme.lower()] = symbol
+                new_data = table_data[f'{self.block_number}'][0]
+                new_data[word.lexeme.lower()] = symbol.type
+                table_data[f'{self.block_number}'] = (new_data,
+                                                      table_data[f'{self.block_number}'][1])
             else:
                 self.error.print_error()
-        #print(self.symbol_table)
-
 
     def get(self, id):
+        if id.lexeme.lower() in self.keywords:
+            self.error.print_error()
         symbol_table_ids = self.symbol_table.keys()
         if id.lexeme.lower() in symbol_table_ids:
             symbol = self.symbol_table[id.lexeme.lower()]
@@ -104,60 +100,48 @@ class Parser:
         self.lookahead = self.lexer.scan()
         self.top = Env(None)
 
-    def match(self, t=None):
-        printd('match')
-        printd(f'lookahead is : {self.lookahead}')
-        if t is not None:
-            if self.lookahead != t:
-                self.error.missmatch()
-        else:
-            pass
-            # printm(self.lookahead)
+    def match(self, t):
+        if self.lookahead != t:
+            self.error.missmatch()
 
         self.lookahead = self.lexer.scan()
 
     def program(self):
-        printd('program')
+        global block_number
         self.match('begin')
-        printm('begin')
+        printf('begin')
         self.decls()
         self.block()
         self.match('end')
-        printm('end')
+        printf('end')
+        if self.lookahead is not None:
+            self.error.print_error()
 
     def block(self):
-        printd('block')
         global block_number
-        block_number += 1
+        block_number = last_block_number + 1 
         saved = self.top
         self.top = Env(self.top)
-        # self.top = self.saved
         self.match('{')
-        printm('{')
+        printf('{')
         self.decls()
         self.stmts()
         self.match('}')
-        printm('}')
+        printf('}')
         self.top = saved
-        block_number -= 1
+        block_number = self.top.block_number
 
     def decls(self):
-        printd('decls')
         self.rest1()
 
     def rest1(self):
-        printd('rest1')
-        printd(f'lookahead is :{self.lookahead}')
         if self.lookahead.lower() in ['int', 'float', 'char', 'bool']:
             self.decl()
             self.rest1()
 
     def decl(self):
-        printd('decl')
         type = self.lookahead
-        printd(f'lookahead is (type): {type}')
         self.match(type)
-        printd(f'lookahead is (id): {self.lookahead}')
         word = Word(type, self.lookahead)
         self.match(self.lookahead)
         s = Symbol(type)
@@ -166,19 +150,14 @@ class Parser:
         self.match(';')
 
     def stmts(self):
-        printd('stmts')
         self.rest2()
 
     def rest2(self):
-        printd('rest2')
-        printd(f'lookahead is : {self.lookahead}')
         if self.error.valid_variable_names(self.lookahead) or self.lookahead == '{':
             self.stmt()
             self.rest2()
 
     def stmt(self):
-        printd(f'index is {index}')
-        printd(f'length is {len(self.lexer.input_file)}')
         if self.lookahead == '{':
             self.block()
         else:
@@ -186,13 +165,12 @@ class Parser:
             self.match(';')
 
     def factor(self):
-        printd('factor')
         word = Word('int', self.lookahead)
         s = self.top.get(word)
-        printm(f'{self.lookahead}:{s.type}{s.block_number};')
-        self.match()
+        printf(f'{self.lookahead}:{s.type}{s.block_number};')
+        self.match(self.lookahead)
 
-
+# Struct
 class Tag:
     def __init__(self):
         self.ID = 1
@@ -215,10 +193,11 @@ class Word:
 
 class LexicalAnalyzer:
     def __init__(self):
-        self.input_file = open("input_file.txt").read()
+        self.input_file = open(file_name).read()
         self.length = len(self.input_file)
         self.tag = Tag()
         self.error = Error()
+        # For better readabliity 
         INT = Word(self.tag.INT, 'int')
         FLOAT = Word(self.tag.FLOAT, 'float')
         BOOL = Word(self.tag.BOOL, 'bool')
@@ -234,11 +213,8 @@ class LexicalAnalyzer:
         self.reserved_keywords_types = ['int', 'bool', 'char', 'float']
 
     def tokenize(self):
-        printd('tokenize')
         b = self.peek
         self.peek = ""
-        '''if self.error.valid_variable_names(b):
-            self.error.print_error()'''
         # For begin and end terminals
         if b.lower() in ['begin', 'end']:
             return b.lower()
@@ -257,7 +233,6 @@ class LexicalAnalyzer:
         return b.lower()
 
     def scan(self):
-        printd('scan')
         global index
         global line
         is_line_comment = False
@@ -331,7 +306,13 @@ class LexicalAnalyzer:
 
             if len(token) != 0:
                 return token
-            
+
+
 if __name__ == '__main__':
     p = Parser()
     p.program()
+    
+    user_input = input("\nDo you want to visualize symbol tables?(y/n)")
+    if user_input == 'y':
+        G = Graphizer()
+        G.draw(table_data)
